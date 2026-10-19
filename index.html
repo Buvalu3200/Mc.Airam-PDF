@@ -1,0 +1,2142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="McAiram">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#3d1226">
+<meta name="format-detection" content="telephone=no">
+<title>McAiram · Formato de Pedidos</title>
+<meta name="description" content="Aplicación de toma de pedidos para productos de belleza McAiram con exportación a PDF optimizada para iOS.">
+<meta property="og:title" content="McAiram · Formato de Pedidos">
+<meta property="og:description" content="Aplicación de toma de pedidos para productos de belleza McAiram con exportación a PDF optimizada para iOS.">
+
+<!-- jsPDF & jsPDF-AutoTable CDNs (Sin html2canvas para máximo rendimiento y soporte en iOS Safari) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.4/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+/* ============ DESIGN TOKENS ============ */
+:root{
+  --wine-950:#2c0e1c;
+  --wine-900:#3d1226;
+  --wine-800:#5c1936;
+  --wine-700:#7a2048;
+  --wine-600:#93264f;
+  --wine-100:#f6e6ec;
+  --gold-600:#a9822f;
+  --gold-500:#c9a227;
+  --gold-100:#f6ecd2;
+  --ink-900:#241d1a;
+  --ink-700:#4a413c;
+  --ink-500:#7a716b;
+  --ink-300:#c9c1b8;
+  --paper-0:#fffdf9;
+  --paper-50:#faf6ef;
+  --paper-100:#f3ecdf;
+  --line:#e6dcc9;
+  --ok-600:#3f7d5c;
+  --danger-600:#b3402f;
+  --shadow-1: 0 1px 3px rgba(44,14,28,.07), 0 2px 8px rgba(44,14,28,.06);
+  --shadow-2: 0 8px 28px rgba(44,14,28,.18);
+  --radius-s: 10px;
+  --radius-m: 16px;
+  --radius-l: 24px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
+}
+
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
+
+html,body{
+  margin:0;
+  padding:0;
+  min-height:100%;
+}
+
+body{
+  background:var(--paper-100);
+  color:var(--ink-900);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  overscroll-behavior-y:none;
+  min-height:100vh;
+}
+
+/* iOS Touch & Cursor Pointer Enforcements */
+button,
+a,
+input,
+textarea,
+select,
+.chip,
+.cat-head,
+.client-toggle,
+.icon-btn,
+.stepper button,
+.cart-fab-btn,
+.close-x,
+.cart-item-del,
+.clear-x,
+.sheet-backdrop{
+  cursor:pointer;
+  touch-action:manipulation;
+}
+
+button{
+  font-family:inherit;
+  border:none;
+  outline:none;
+  background:none;
+}
+
+input, textarea{
+  font-family:inherit;
+  -webkit-appearance:none;
+}
+
+/* ============ HERO / HEADER ============ */
+.hero{
+  background:
+    radial-gradient(120% 160% at 15% -10%, rgba(201,162,39,.35), transparent 55%),
+    linear-gradient(160deg, var(--wine-900), var(--wine-700) 60%, var(--wine-600));
+  padding: calc(14px + var(--safe-t)) 18px 22px;
+  color:var(--paper-0);
+  position:relative;
+  border-bottom-left-radius: 28px;
+  border-bottom-right-radius: 28px;
+  box-shadow: var(--shadow-2);
+}
+.hero-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.brand-mark{
+  width:38px;
+  height:38px;
+  border-radius:11px;
+  background:linear-gradient(145deg,var(--gold-500),var(--gold-600));
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:ui-serif,Georgia,"Times New Roman",serif;
+  font-weight:700;
+  font-size:18px;
+  color:var(--wine-950);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 2px 6px rgba(0,0,0,.25);
+  flex-shrink:0;
+}
+.brand-text .name{
+  font-family:ui-serif,Georgia,"Times New Roman",serif;
+  font-size:20px;
+  letter-spacing:.2px;
+  line-height:1.05;
+  font-weight:700;
+}
+.brand-text .tag{
+  font-size:11px;
+  letter-spacing:1.6px;
+  text-transform:uppercase;
+  color:var(--gold-100);
+  opacity:.85;
+}
+.hero-actions{
+  display:flex;
+  gap:8px;
+}
+.icon-btn{
+  width:38px;
+  height:38px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.22);
+  background:rgba(255,255,255,.08);
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:background .2s;
+}
+.icon-btn:active{
+  background:rgba(255,255,255,.22);
+  transform:scale(0.96);
+}
+
+.client-toggle{
+  margin-top:16px;
+  width:100%;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.2);
+  border-radius:var(--radius-m);
+  padding:12px 14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  color:#fff;
+  text-align:left;
+}
+.client-toggle:active{
+  background:rgba(255,255,255,.14);
+}
+.client-toggle .l1{
+  font-size:13.5px;
+  font-weight:600;
+}
+.client-toggle .l2{
+  font-size:11.5px;
+  color:var(--gold-100);
+  opacity:.85;
+  margin-top:1px;
+}
+.chev{
+  transition:transform .25s ease;
+  flex-shrink:0;
+}
+.chev.open{
+  transform:rotate(180deg);
+}
+
+/* ============ CLIENT PANEL ============ */
+.client-panel{
+  overflow:hidden;
+  max-height:0;
+  transition:max-height .32s ease;
+  background:var(--paper-0);
+  margin:0 18px;
+  border-radius:0 0 var(--radius-m) var(--radius-m);
+}
+.client-panel.open{
+  max-height:950px;
+}
+.client-inner{
+  padding:16px 16px 18px;
+  border:1px solid var(--line);
+  border-top:none;
+  border-radius:0 0 var(--radius-m) var(--radius-m);
+}
+.field{
+  margin-bottom:11px;
+}
+.field label{
+  display:block;
+  font-size:10.5px;
+  letter-spacing:.6px;
+  text-transform:uppercase;
+  color:var(--wine-700);
+  font-weight:700;
+  margin-bottom:4px;
+}
+.field input, .field textarea{
+  width:100%;
+  border:1.5px solid var(--line);
+  border-radius:var(--radius-s);
+  padding:10px 12px;
+  font-size:15px;
+  background:var(--paper-50);
+  color:var(--ink-900);
+}
+.field input:focus, .field textarea:focus{
+  outline:none;
+  border-color:var(--wine-600);
+  background:#fff;
+}
+.field-row{
+  display:flex;
+  gap:10px;
+}
+.field-row .field{
+  flex:1;
+}
+
+/* ============ SEARCH BAR & CHIPS ============ */
+.searchbar-wrap{
+  position:sticky;
+  top:0;
+  z-index:30;
+  background:linear-gradient(var(--paper-100) 80%, transparent);
+  padding:10px 14px 6px;
+}
+.searchbar{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  background:#fff;
+  border:1.5px solid var(--line);
+  border-radius:16px;
+  padding:10px 12px;
+  box-shadow:var(--shadow-1);
+}
+.searchbar svg{
+  flex-shrink:0;
+  color:var(--wine-600);
+}
+.searchbar input{
+  flex:1;
+  border:none;
+  outline:none;
+  font-size:15.5px;
+  background:transparent;
+  color:var(--ink-900);
+}
+.searchbar input::placeholder{
+  color:var(--ink-500);
+}
+.searchbar .clear-x{
+  width:24px;
+  height:24px;
+  border-radius:50%;
+  background:var(--paper-100);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--ink-500);
+  flex-shrink:0;
+}
+
+.chips{
+  display:flex;
+  gap:7px;
+  overflow-x:auto;
+  padding:9px 2px 3px;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+.chips::-webkit-scrollbar{
+  display:none;
+}
+.chip{
+  flex-shrink:0;
+  white-space:nowrap;
+  font-size:12.5px;
+  font-weight:600;
+  padding:7px 13px;
+  border-radius:100px;
+  background:#fff;
+  border:1.3px solid var(--line);
+  color:var(--ink-700);
+  transition:all .18s ease;
+  user-select:none;
+}
+.chip:active{
+  transform:scale(0.96);
+}
+.chip.active{
+  background:var(--wine-700);
+  border-color:var(--wine-700);
+  color:#fff;
+}
+.chip .cnt{
+  opacity:.7;
+  font-weight:500;
+  margin-left:4px;
+  font-size:11px;
+}
+
+/* ============ CATEGORY ACCORDIONS & PRODUCTS ============ */
+main{
+  padding:4px 14px 140px;
+}
+.cat{
+  margin-top:16px;
+  background:#fff;
+  border-radius:var(--radius-m);
+  border:1px solid var(--line);
+  box-shadow:var(--shadow-1);
+  overflow:hidden;
+}
+.cat-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:14px 15px;
+  user-select:none;
+  background:#fff;
+  transition:background .15s;
+}
+.cat-head:active{
+  background:var(--paper-50);
+}
+.cat-head-left{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+}
+.cat-badge{
+  width:34px;
+  height:34px;
+  border-radius:10px;
+  flex-shrink:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+}
+.cat-title{
+  font-size:15px;
+  font-weight:700;
+  color:var(--ink-900);
+  line-height:1.2;
+}
+.cat-sub{
+  font-size:11.5px;
+  color:var(--ink-500);
+  margin-top:1px;
+}
+.cat-count{
+  font-size:11px;
+  font-weight:700;
+  background:var(--wine-100);
+  color:var(--wine-700);
+  padding:3px 9px;
+  border-radius:100px;
+  flex-shrink:0;
+}
+.cat-body{
+  border-top:1px solid var(--line);
+}
+.cat-body.collapsed{
+  display:none;
+}
+
+.prow{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:11px 15px;
+  border-bottom:1px solid var(--paper-100);
+}
+.prow:last-child{
+  border-bottom:none;
+}
+.prow.has-qty{
+  background:linear-gradient(90deg, var(--wine-100), transparent 55%);
+}
+.prow-info{
+  flex:1;
+  min-width:0;
+}
+.prow-code{
+  display:inline-block;
+  font-size:11px;
+  font-weight:700;
+  color:var(--wine-700);
+  background:var(--wine-100);
+  padding:2px 7px;
+  border-radius:6px;
+  margin-bottom:3px;
+  letter-spacing:.2px;
+}
+.prow-name{
+  font-size:13.7px;
+  color:var(--ink-900);
+  line-height:1.28;
+  font-weight:500;
+}
+mark{
+  background:var(--gold-100);
+  color:var(--wine-900);
+  border-radius:3px;
+  padding:0 2px;
+}
+
+.variants{
+  display:flex;
+  gap:8px;
+  flex-shrink:0;
+}
+.variant{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:3px;
+}
+.variant .vlabel{
+  font-size:9px;
+  font-weight:700;
+  color:var(--ink-500);
+  letter-spacing:.4px;
+}
+.stepper{
+  display:flex;
+  align-items:center;
+  background:var(--paper-50);
+  border:1.3px solid var(--line);
+  border-radius:10px;
+  overflow:hidden;
+}
+.stepper button{
+  width:32px;
+  height:32px;
+  border:none;
+  background:transparent;
+  color:var(--wine-700);
+  font-size:18px;
+  font-weight:700;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  user-select:none;
+}
+.stepper button:active{
+  background:var(--wine-100);
+}
+.stepper input{
+  width:32px;
+  text-align:center;
+  border:none;
+  background:transparent;
+  font-size:14.5px;
+  font-weight:700;
+  color:var(--ink-900);
+  -moz-appearance:textfield;
+  padding:0;
+}
+.stepper input::-webkit-outer-spin-button,
+.stepper input::-webkit-inner-spin-button{
+  -webkit-appearance:none;
+  margin:0;
+}
+
+.empty-state{
+  padding:40px 20px;
+  text-align:center;
+  color:var(--ink-500);
+}
+.empty-state svg{
+  margin-bottom:10px;
+  color:var(--ink-300);
+}
+.empty-state .t1{
+  font-size:15px;
+  font-weight:700;
+  color:var(--ink-700);
+  margin-bottom:3px;
+}
+.empty-state .t2{
+  font-size:13px;
+}
+
+/* ============ FLOATING CART BAR ============ */
+.cart-fab{
+  position:fixed;
+  left:14px;
+  right:14px;
+  bottom:calc(14px + var(--safe-b));
+  z-index:40;
+  background:var(--wine-800);
+  border-radius:18px;
+  box-shadow:var(--shadow-2);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 10px 12px 16px;
+  color:#fff;
+  transform:translateY(130%);
+  transition:transform .35s cubic-bezier(.2,.9,.3,1);
+}
+.cart-fab.show{
+  transform:translateY(0);
+}
+.cart-fab-left{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.cart-count{
+  min-width:24px;
+  height:24px;
+  padding:0 6px;
+  border-radius:100px;
+  background:var(--gold-500);
+  color:var(--wine-950);
+  font-size:12.5px;
+  font-weight:800;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.cart-fab-text .t1{
+  font-size:14px;
+  font-weight:700;
+}
+.cart-fab-text .t2{
+  font-size:11.5px;
+  color:var(--gold-100);
+  opacity:.85;
+}
+.cart-fab-btn{
+  background:var(--gold-500);
+  color:var(--wine-950);
+  border:none;
+  border-radius:13px;
+  padding:10px 16px;
+  font-size:13.5px;
+  font-weight:800;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  box-shadow:0 2px 8px rgba(0,0,0,.2);
+}
+.cart-fab-btn:active{
+  transform:scale(0.96);
+}
+
+/* ============ BOTTOM SHEET (ORDER SUMMARY) ============ */
+.sheet-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(36,29,26,.5);
+  z-index:50;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .28s ease;
+  -webkit-backdrop-filter:blur(2px);
+  backdrop-filter:blur(2px);
+}
+.sheet-backdrop.show{
+  opacity:1;
+  pointer-events:auto;
+}
+.sheet{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  z-index:51;
+  max-height:88vh;
+  background:var(--paper-0);
+  border-radius:26px 26px 0 0;
+  box-shadow:0 -10px 40px rgba(0,0,0,.25);
+  transform:translateY(100%);
+  transition:transform .34s cubic-bezier(.2,.9,.3,1);
+  display:flex;
+  flex-direction:column;
+}
+.sheet.show{
+  transform:translateY(0);
+}
+.sheet-grab{
+  width:38px;
+  height:4.5px;
+  background:var(--ink-300);
+  border-radius:10px;
+  margin:10px auto 4px;
+}
+.sheet-head{
+  padding:6px 18px 12px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  border-bottom:1px solid var(--line);
+}
+.sheet-head h2{
+  font-family:ui-serif,Georgia,"Times New Roman",serif;
+  font-size:19px;
+  margin:0;
+  color:var(--wine-900);
+}
+.sheet-head .close-x{
+  width:30px;
+  height:30px;
+  border-radius:50%;
+  background:var(--paper-100);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--ink-700);
+}
+.sheet-body{
+  overflow-y:auto;
+  padding:8px 18px 10px;
+  -webkit-overflow-scrolling:touch;
+}
+.sheet-empty{
+  padding:40px 10px;
+  text-align:center;
+  color:var(--ink-500);
+}
+
+.cart-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 0;
+  border-bottom:1px solid var(--paper-100);
+}
+.cart-item-info{
+  flex:1;
+  min-width:0;
+}
+.cart-item-name{
+  font-size:13.5px;
+  font-weight:600;
+  color:var(--ink-900);
+}
+.cart-item-meta{
+  font-size:11.3px;
+  color:var(--ink-500);
+  margin-top:1px;
+}
+.cart-item-qty{
+  font-size:13px;
+  font-weight:800;
+  color:var(--wine-700);
+  background:var(--wine-100);
+  padding:4px 9px;
+  border-radius:8px;
+}
+.cart-item-del{
+  width:28px;
+  height:28px;
+  border-radius:8px;
+  background:#fbeae7;
+  color:var(--danger-600);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+}
+
+.sheet-section-title{
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.6px;
+  text-transform:uppercase;
+  color:var(--wine-700);
+  margin:16px 0 8px;
+}
+.totals-card{
+  background:var(--paper-50);
+  border:1px solid var(--line);
+  border-radius:var(--radius-m);
+  padding:14px;
+  margin-top:6px;
+}
+.totals-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:13.5px;
+  padding:5px 0;
+  color:var(--ink-700);
+}
+.totals-row.grand{
+  font-size:16px;
+  font-weight:800;
+  color:var(--wine-900);
+  border-top:1px dashed var(--ink-300);
+  margin-top:6px;
+  padding-top:10px;
+}
+.iva-input-wrap{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.iva-input-wrap input{
+  width:52px;
+  text-align:center;
+  border:1.3px solid var(--line);
+  border-radius:8px;
+  padding:5px;
+  font-size:13px;
+  font-weight:700;
+  background:#fff;
+}
+
+.sheet-footer{
+  padding:12px 18px calc(14px + var(--safe-b));
+  border-top:1px solid var(--line);
+  background:#fff;
+}
+.btn-primary{
+  width:100%;
+  background:linear-gradient(135deg,var(--wine-700),var(--wine-800));
+  color:#fff;
+  border:none;
+  border-radius:15px;
+  padding:15px;
+  font-size:15px;
+  font-weight:800;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  box-shadow:0 6px 16px rgba(122,32,72,.35);
+}
+.btn-primary:active{
+  transform:scale(.98);
+}
+.btn-secondary{
+  width:100%;
+  background:var(--paper-100);
+  color:var(--wine-800);
+  border:1.5px solid var(--line);
+  border-radius:15px;
+  padding:12px;
+  font-size:13.5px;
+  font-weight:700;
+  margin-top:8px;
+}
+.btn-secondary:active{
+  background:var(--paper-50);
+}
+
+.toast{
+  position:fixed;
+  left:50%;
+  bottom:calc(90px + var(--safe-b));
+  transform:translateX(-50%) translateY(20px);
+  background:var(--ink-900);
+  color:#fff;
+  padding:11px 18px;
+  border-radius:100px;
+  font-size:13px;
+  font-weight:600;
+  z-index:60;
+  opacity:0;
+  pointer-events:none;
+  transition:all .3s ease;
+  box-shadow:var(--shadow-2);
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.toast.show{
+  opacity:1;
+  transform:translateX(-50%) translateY(0);
+}
+
+/* Loading Overlay for PDF */
+.pdf-loading{
+  position:fixed;
+  inset:0;
+  z-index:201;
+  background:rgba(44,14,28,.88);
+  color:#fff;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  gap:14px;
+  -webkit-backdrop-filter:blur(4px);
+  backdrop-filter:blur(4px);
+}
+.pdf-loading.show{
+  display:flex;
+}
+.pdf-spinner{
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  border:3.5px solid rgba(255,255,255,.2);
+  border-top-color:var(--gold-500);
+  animation:pdfspin 0.8s linear infinite;
+}
+.pdf-loading .pl-text{
+  font-size:14px;
+  font-weight:600;
+  letter-spacing:.3px;
+}
+@keyframes pdfspin{
+  to{transform:rotate(360deg);}
+}
+
+@media (min-width:640px){
+  main, .searchbar-wrap{max-width:640px;margin:0 auto;}
+  .hero, .cart-fab{max-width:640px;left:50%;transform:translateX(-50%);right:auto;width:calc(640px - 28px);}
+  .cart-fab.show{transform:translateX(-50%) translateY(0);}
+  body{background:var(--paper-100);}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ HERO / HEADER ============ -->
+<div class="hero">
+  <div class="hero-top">
+    <div class="brand">
+      <div class="brand-mark">Mc</div>
+      <div class="brand-text">
+        <div class="name">McAiram</div>
+        <div class="tag">Formato de Pedidos</div>
+      </div>
+    </div>
+    <div class="hero-actions">
+      <button class="icon-btn" id="resetBtn" title="Nuevo pedido" aria-label="Nuevo pedido">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <button class="client-toggle" id="clientToggle" aria-expanded="false">
+    <div>
+      <div class="l1" id="clientSummaryLine">Datos del cliente</div>
+      <div class="l2" id="clientSummarySub">Toca para diligenciar</div>
+    </div>
+    <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+  </button>
+</div>
+
+<div class="client-panel" id="clientPanel">
+  <div class="client-inner">
+    <div class="field">
+      <label for="c_nombre">Nombres y apellidos / Razón social</label>
+      <input type="text" id="c_nombre" placeholder="Ej. Salón Bella Imagen / María Pérez" autocomplete="name">
+    </div>
+    <div class="field">
+      <label for="c_direccion">Dirección de despacho</label>
+      <input type="text" id="c_direccion" placeholder="Calle / Carrera, número" autocomplete="street-address">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="c_telefono">Teléfono</label>
+        <input type="tel" id="c_telefono" placeholder="300 000 0000" autocomplete="tel">
+      </div>
+      <div class="field">
+        <label for="c_barrio">Barrio</label>
+        <input type="text" id="c_barrio" placeholder="Barrio">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="c_ciudad">Ciudad</label>
+        <input type="text" id="c_ciudad" placeholder="Ciudad" autocomplete="address-level2">
+      </div>
+      <div class="field">
+        <label for="c_nit">Nº RUT / NIT</label>
+        <input type="text" id="c_nit" placeholder="RUT / NIT">
+      </div>
+    </div>
+    <div class="field">
+      <label for="c_correo">Correo electrónico</label>
+      <input type="email" id="c_correo" placeholder="correo@ejemplo.com" autocomplete="email">
+    </div>
+    <div class="field">
+      <label for="c_fecha">Fecha</label>
+      <input type="date" id="c_fecha">
+    </div>
+  </div>
+</div>
+
+<!-- ============ SEARCH ============ -->
+<div class="searchbar-wrap">
+  <div class="searchbar">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+    <input type="search" id="searchInput" placeholder="Buscar por nombre o código (ej. 10-0, Elastina...)" autocomplete="off" autocorrect="off" autocapitalize="off">
+    <button type="button" class="clear-x" id="clearSearch" style="display:none;" aria-label="Limpiar búsqueda">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="chips" id="chipsRow"></div>
+</div>
+
+<!-- ============ CATALOG ============ -->
+<main id="catalogRoot"></main>
+
+<div id="emptyResults" class="empty-state" style="display:none;">
+  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+  <div class="t1">Sin resultados</div>
+  <div class="t2">Prueba con otro nombre o código de referencia</div>
+</div>
+
+<!-- ============ FLOATING CART BAR ============ -->
+<div class="cart-fab" id="cartFab" role="button" tabindex="0">
+  <div class="cart-fab-left">
+    <div class="cart-count" id="cartCount">0</div>
+    <div class="cart-fab-text">
+      <div class="t1">Ver pedido</div>
+      <div class="t2" id="cartFabSub">0 referencias seleccionadas</div>
+    </div>
+  </div>
+  <button type="button" class="cart-fab-btn" id="openCartBtn">
+    Resumen
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+  </button>
+</div>
+
+<!-- ============ BOTTOM SHEET (ORDER SUMMARY) ============ -->
+<div class="sheet-backdrop" id="sheetBackdrop"></div>
+<div class="sheet" id="cartSheet">
+  <div class="sheet-grab"></div>
+  <div class="sheet-head">
+    <h2>Resumen del pedido</h2>
+    <button type="button" class="close-x" id="closeSheetBtn" aria-label="Cerrar resumen">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="sheet-body" id="sheetBody">
+    <!-- filled dynamically by JS -->
+  </div>
+  <div class="sheet-footer">
+    <button type="button" class="btn-primary" id="exportPdfBtn">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Exportar PDF del pedido
+    </button>
+    <button type="button" class="btn-secondary" id="clearCartBtn">Vaciar pedido</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Loading overlay for PDF generation -->
+<div class="pdf-loading" id="pdfLoading">
+  <div class="pdf-spinner"></div>
+  <div class="pl-text">Generando PDF oficial McAiram…</div>
+</div>
+
+<!-- ============ CATALOG DATA JSON (Actualizado exactamente según formato oficial) ============ -->
+<script id="catalog-data" type="application/json">
+[
+  {
+    "id": "tintes",
+    "title": "Tintes Perma Touch",
+    "icon": "palette",
+    "units": ["PERMA", "TOUCH"],
+    "items": [
+      {"code": "10-0", "name": "RUBIO EXTRACLARO NATURAL", "touch": true},
+      {"code": "9-0", "name": "RUBIO MUY CLARO NATURAL", "touch": true},
+      {"code": "8-0", "name": "RUBIO CLARO NATURAL", "touch": true},
+      {"code": "7-0", "name": "RUBIO MEDIANO NATURAL", "touch": true},
+      {"code": "6-0", "name": "RUBIO OSCURO NATURAL", "touch": true},
+      {"code": "5-0", "name": "CASTAÑO CLARO NATURAL", "touch": true},
+      {"code": "4-0", "name": "CASTAÑO MEDIANO NATURAL", "touch": true},
+      {"code": "3-0", "name": "CASTAÑO OSCURO NATURAL", "touch": true},
+      {"code": "1-0", "name": "NEGRO NATURAL", "touch": true},
+      {"code": "11-00", "name": "SUPER ACLARANTE"},
+      {"code": "11-00V", "name": "SUPER ACLARANTE EXTRA"},
+      {"code": "9-NI", "name": "RUBIO MUY CLARO NATURAL INTENSO", "touch": true},
+      {"code": "8-NI", "name": "RUBIO CLARO NATURAL INTENSO", "touch": true},
+      {"code": "7-NI", "name": "RUBIO MEDIANO NATURAL INTENSO", "touch": true},
+      {"code": "6-NI", "name": "RUBIO OSCURO NATURAL INTENSO"},
+      {"code": "1-11", "name": "NEGRO NATURAL AZULADO", "touch": true},
+      {"code": "8-01", "name": "RUBIO CLARO NATURAL CENIZO"},
+      {"code": "7-01", "name": "RUBIO MEDIANO NATURAL CENIZO"},
+      {"code": "6-01", "name": "RUBIO OSCURO NATURAL CENIZO"},
+      {"code": "9-1", "name": "RUBIO MUY CLARO CENIZO", "touch": true},
+      {"code": "8-1", "name": "RUBIO CLARO CENIZO", "touch": true},
+      {"code": "7-1", "name": "RUBIO MEDIANO CENIZO", "touch": true},
+      {"code": "6-1", "name": "RUBIO OSCURO CENIZO"},
+      {"code": "5-1", "name": "CASTAÑO CLARO CENIZO"},
+      {"code": "10-11", "name": "RUBIO SUPER CLARO CENIZO PROFUNDO", "touch": true},
+      {"code": "9-11", "name": "RUBIO MUY CLARO CENIZO PROFUNDO", "touch": true},
+      {"code": "8-11", "name": "RUBIO CLARO CENIZO PROFUNDO", "touch": true},
+      {"code": "7-11", "name": "RUBIO MEDIANO CENIZO PROFUNDO", "touch": true},
+      {"code": "6-11", "name": "RUBIO OSCURO CENIZO PROFUNDO"},
+      {"code": "5-11", "name": "CASTAÑO CLARO CENIZO PROFUNDO"},
+      {"code": "0-11", "name": "CORRECTOR GRIS CENIZO"},
+      {"code": "7000", "name": "CORRECTOR NATURAL AZUL"},
+      {"code": "10-213", "name": "BEIGE PERLA SATINADO", "touch": true},
+      {"code": "9-2", "name": "RUBIO MUY CLARO IRISADO"},
+      {"code": "8-2", "name": "RUBIO CLARO IRISADO"},
+      {"code": "7-2", "name": "RUBIO MEDIANO IRISADO"},
+      {"code": "10-21", "name": "RUBIO EXTRACLARO IRISADO CENIZO"},
+      {"code": "9-21", "name": "RUBIO MUY CLARO IRISADO CENIZO", "touch": true},
+      {"code": "8-21", "name": "RUBIO CLARO IRISADO CENIZO", "touch": true},
+      {"code": "7-21", "name": "RUBIO MEDIANO IRISADO CENIZO", "touch": true},
+      {"code": "10-22", "name": "IRISADO PLATA", "touch": true},
+      {"code": "9-22", "name": "VIOLETA PROFUNDO"},
+      {"code": "8-213", "name": "RUBIO CLARO BEIGE PERLA", "touch": true},
+      {"code": "7-213", "name": "RUBIO MEDIANO BEIGE PERLA", "touch": true},
+      {"code": "11-213", "name": "BEIGE PERLA DORADO", "touch": true},
+      {"code": "9-213", "name": "RUBIO MUY CLARO BEIGE PERLA", "touch": true},
+      {"code": "8-3", "name": "RUBIO CLARO DORADO"},
+      {"code": "7-3", "name": "RUBIO MEDIANO DORADO"},
+      {"code": "6-3", "name": "RUBIO OSCURO DORADO"},
+      {"code": "5-3", "name": "CASTAÑO CLARO DORADO"},
+      {"code": "7-53", "name": "CHOCOLATE", "touch": true},
+      {"code": "6-53", "name": "CHOCOLATE INTENSO", "touch": true},
+      {"code": "6-M", "name": "MARRON BRUNET", "touch": true},
+      {"code": "5-M", "name": "MARRON", "touch": true},
+      {"code": "8-37", "name": "NOGAL DORADO MATE"},
+      {"code": "8-7", "name": "RUBIO CLARO MATE", "touch": true},
+      {"code": "7-7", "name": "RUBIO MEDIANO MATE", "touch": true},
+      {"code": "6-7", "name": "RUBIO OSCURO MATE"},
+      {"code": "0-01", "name": "CORRECTOR VERDE CENIZO"},
+      {"code": "8-66", "name": "ROJO VIVO", "touch": true},
+      {"code": "7-66", "name": "ROJO MEDIANO INTENSO"},
+      {"code": "6-65", "name": "ROJO CARMESI"},
+      {"code": "5-65", "name": "ROJO MALVA"},
+      {"code": "4-67", "name": "ROJO BERENJENA", "touch": true},
+      {"code": "0-66", "name": "INTENSIFICADOR ROJO"},
+      {"code": "7-5", "name": "RUBIO MEDIANO CAOBA"},
+      {"code": "7-M", "name": "ROJO MOGANO"},
+      {"code": "5-5", "name": "CASTAÑO CLARO CAOBA"},
+      {"code": "3-5", "name": "CASTAÑO OSCURO CAOBA"},
+      {"code": "9-34", "name": "DORADO COBRIZO SATINADO"},
+      {"code": "8-46", "name": "RUBIO CLARO COBRIZO ROJIZO"},
+      {"code": "8-44", "name": "RUBIO CLARO COBRIZO PROFUNDO"},
+      {"code": "7-4", "name": "RUBIO MEDIANO COBRIZO"},
+      {"code": "7-34", "name": "RUBIO ARENA DORADO"},
+      {"code": "9.992", "name": "RUBIO MUY CLARO ULTRAVIOLETA", "touch": true},
+      {"code": "8.992", "name": "RUBIO CLARO ULTRAVIOLETA", "touch": true},
+      {"code": "5.666", "name": "BORGOÑA", "touch": true},
+      {"code": "5.992", "name": "CASTAÑO CLARO ULTRAVIOLETA", "touch": true},
+      {"code": "1.992", "name": "NEGRO ULTRAVIOLETA", "touch": true}
+    ]
+  },
+  {
+    "id": "oxicream120",
+    "title": "Oxicream x 120 ML",
+    "icon": "drop",
+    "units": ["UND"],
+    "items": [
+      {"code": "505010", "name": "OXICREAM 10 VOL X 120 ML"},
+      {"code": "505020", "name": "OXICREAM 20 VOL X 120 ML"},
+      {"code": "505030", "name": "OXICREAM 30 VOL X 120 ML"},
+      {"code": "505309", "name": "OXICREAM ACTIVADOR 9 VOL X 120 ML"}
+    ]
+  },
+  {
+    "id": "oxicreamgde",
+    "title": "Oxicream Activadores",
+    "icon": "drop",
+    "units": ["LITRO", "GALON"],
+    "items": [
+      {"code": "505017", "name": "OXICREAM 10 VOL"},
+      {"code": "505027", "name": "OXICREAM 20 VOL"},
+      {"code": "505037", "name": "OXICREAM 30 VOL"}
+    ]
+  },
+  {
+    "id": "tratamientos",
+    "title": "Tratamientos Capilares",
+    "icon": "leaf",
+    "units": ["UND"],
+    "items": [
+      {"code": "505318", "name": "ELASTINA X 300 ML"},
+      {"code": "505320", "name": "ELASTINA X 1000 ML"},
+      {"code": "505309", "name": "ELASTINA X 2000 ML"},
+      {"code": "505312", "name": "ELASTINA X 20.000 ML"},
+      {"code": "506300", "name": "TRAT ELASTINA CAJA 15 ML X 24 SOBRES"},
+      {"code": "505400", "name": "RESERVA DE CHOCOLATE X 500 ML"},
+      {"code": "505401", "name": "RESERVA DE CHOCOLATE X 150 ML"},
+      {"code": "515001", "name": "TRATAMIENTO RESTAURADOR LEAVE ON X 220ML"}
+    ]
+  },
+  {
+    "id": "polvos",
+    "title": "Polvos Decolorantes",
+    "icon": "cloud",
+    "units": ["UND"],
+    "items": [
+      {"code": "505150", "name": "POLVO DECOLORANTE AZUL X 500 GR"},
+      {"code": "505151", "name": "CAJA POLVO DECOLORANTE AZUL X 15 SOBRES"},
+      {"code": "505153", "name": "POLVO DECOLORANTE 9 TONOS (BLANCO) X 500 GR"},
+      {"code": "505154", "name": "CAJA POLVO DECOLORANTE 9 TONOSX 12 SOBRES"}
+    ]
+  },
+  {
+    "id": "shampoo",
+    "title": "Shampoo Color",
+    "icon": "bottle",
+    "units": ["UND"],
+    "items": [
+      {"code": "501710", "name": "SHAMPOO COLOR CENIZA X 300 ML"},
+      {"code": "501720", "name": "SHAMPOO COLOR PLATA X 300 ML"}
+    ]
+  },
+  {
+    "id": "mascarilla",
+    "title": "Mascarilla Color Tono Sobre Tono",
+    "icon": "jar",
+    "units": ["ML", "CJ X 12"],
+    "items": [
+      {"code": "506400", "name": "TONO SOBRE TONO MC ROJO X 300 ML"},
+      {"code": "506401", "name": "TONO SOBRE TONO MC COBRIZO X 300 ML"},
+      {"code": "506402", "name": "TONO SOBRE TONO MC CENIZO X 350 ML"},
+      {"code": "506403", "name": "TONO SOBRE TONO MC NEGRO X 350 ML"},
+      {"code": "506404", "name": "TONO SOBRE TONO MC PERLA BEIGE X 300ML"},
+      {"code": "506405", "name": "TONO SOBRE TONO MC PLATA X 350 ML"},
+      {"code": "506406", "name": "TONO SOBRE TONO MC VIOLETA X 300 ML"},
+      {"code": "506414", "name": "TONO SOBRE TONO MC CHOCOLATE X 300 ML"}
+    ]
+  },
+  {
+    "id": "fantasia",
+    "title": "Fantasía Color Ecocolory",
+    "icon": "star",
+    "units": ["80 ML", "220 ML"],
+    "items": [
+      {"code": "520010", "name": "FANTASIA AZUL (AGUA DEL RIO)"},
+      {"code": "520011", "name": "FANTASIA VERDE (AMAZONICO SALVAJE)"},
+      {"code": "520012", "name": "FANTASIA PASTEL (NEBLINA MONTAÑOSA)"},
+      {"code": "520013", "name": "FANTASIA VIOLETA (FLOR PRIMAVERAL)"},
+      {"code": "520014", "name": "FANTASIA CAFÉ (RAICES DE MI TIERRA)"},
+      {"code": "520015", "name": "FANTASIA AMARILLO(ATARDECER MÁGICO)"},
+      {"code": "520016", "name": "FANTASIA ROJO (FUEGO ENTEREZA)"},
+      {"code": "520017", "name": "FANTASIA NEGRO (CIELO NOCTURNO)"},
+      {"code": "520018", "name": "FANTASIA COBRE (MINERAL COBRIZO)"}
+    ]
+  },
+  {
+    "id": "saloon",
+    "title": "Línea Saloon Professional",
+    "icon": "crown",
+    "units": ["1000ML", "2000ML", "4000ML"],
+    "items": [
+      {"code": "501801", "name": "SHAMPOO SALOON MANZANA"},
+      {"code": "501802", "name": "SHAMPOO SALOON COCO"},
+      {"code": "501803", "name": "SHAMPOO SALOON FRUTOS ROJOS"},
+      {"code": "501804", "name": "TRATAMIENTO SALOON MANZANA"},
+      {"code": "520014", "name": "TRATAMIENTO SALOON COCO"},
+      {"code": "520015", "name": "TRATAMIENTO SALOON FRUTOS ROJOS"}
+    ]
+  }
+]
+</script>
+
+<!-- ============ APLICACIÓN PRINCIPAL (Vanilla JS Puro) ============ -->
+<script>
+/* =========================================================
+   McAiram · App de Pedidos — Estado y Lógica
+   ========================================================= */
+const CATALOG = JSON.parse(document.getElementById('catalog-data').textContent);
+
+const CAT_META = {
+  tintes:      {color:'#7a2048', icon:'M12 3c-4 3-7 7-7 11a7 7 0 0 0 14 0c0-4-3-8-7-11Z'},
+  oxicream120: {color:'#2f6690', icon:'M8 3h8M9 3v4l-5 8a3 3 0 0 0 3 5h10a3 3 0 0 0 3-5l-5-8V3'},
+  oxicreamgde: {color:'#2f6690', icon:'M8 3h8M9 3v4l-5 8a3 3 0 0 0 3 5h10a3 3 0 0 0 3-5l-5-8V3'},
+  tratamientos:{color:'#3f7d5c', icon:'M6 3c-2 4-2 9 1 12 2 2 5 2 7 0 3-3 3-8 1-12M8 21c1-2 3-3 4-3s3 1 4 3'},
+  polvos:      {color:'#5b6b8c', icon:'M4 18c2-6 4-9 8-13 4 4 6 7 8 13-2 1-14 1-16 0Z'},
+  shampoo:     {color:'#1f8a8a', icon:'M9 2h6v3l2 2v13a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V7l2-2Z'},
+  mascarilla:  {color:'#8a4b9e', icon:'M4 10a8 8 0 0 1 16 0v5a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3Z'},
+  fantasia:    {color:'#c9a227', icon:'M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4Z'},
+  saloon:      {color:'#a9822f', icon:'M4 8l4 3 4-6 4 6 4-3-1.5 10h-13Z'},
+};
+
+const state = {
+  search: '',
+  activeChip: 'all',
+  openCats: new Set(CATALOG.map(c => c.id)),
+  qty: {}, // key: `${catId}__${code}__${unitIdx}` -> number
+  totalPedido: '',
+  ivaPct: 19,
+  observaciones: ''
+};
+
+function qkey(catId, code, unitIdx){ return catId + '__' + code + '__' + unitIdx; }
+
+function getQty(catId, code, unitIdx){ return state.qty[qkey(catId, code, unitIdx)] || 0; }
+
+function setQty(catId, code, unitIdx, val){
+  val = Math.max(0, Math.min(9999, Math.round(Number(val)) || 0));
+  const k = qkey(catId, code, unitIdx);
+  if(val === 0){
+    delete state.qty[k];
+  } else {
+    state.qty[k] = val;
+  }
+}
+
+function escapeHtml(s){
+  if(s === null || s === undefined) return '';
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function highlight(text, term){
+  if(!term) return escapeHtml(text);
+  const str = String(text);
+  const idx = str.toLowerCase().indexOf(term.toLowerCase());
+  if(idx === -1) return escapeHtml(str);
+  return escapeHtml(str.slice(0, idx)) + '<mark>' + escapeHtml(str.slice(idx, idx + term.length)) + '</mark>' + escapeHtml(str.slice(idx + term.length));
+}
+
+function matches(item, term){
+  if(!term) return true;
+  const t = term.toLowerCase().trim();
+  return item.name.toLowerCase().includes(t) || item.code.toLowerCase().includes(t);
+}
+
+/* ---------- Chips de Filtro (Totalmente optimizados para iOS) ---------- */
+function renderChips(){
+  const row = document.getElementById('chipsRow');
+  const chips = [{id:'all', title:'Todo'}].concat(CATALOG.map(c => ({id:c.id, title:c.title})));
+  row.innerHTML = chips.map(c => {
+    const count = c.id === 'all' ? '' : `<span class="cnt">${CATALOG.find(x=>x.id===c.id).items.length}</span>`;
+    return `<button type="button" class="chip ${state.activeChip === c.id ? 'active' : ''}" data-chip="${c.id}">${c.title}${count}</button>`;
+  }).join('');
+
+  row.querySelectorAll('.chip').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      state.activeChip = el.dataset.chip;
+      if(state.activeChip !== 'all') state.openCats.add(state.activeChip);
+      renderChips();
+      renderCatalog();
+      if(state.activeChip !== 'all'){
+        const target = document.getElementById('cat-' + state.activeChip);
+        if(target) target.scrollIntoView({behavior:'smooth', block:'start'});
+      }
+    });
+  });
+}
+
+/* ---------- Catálogo de Productos y Acordeones ---------- */
+function renderCatalog(){
+  const root = document.getElementById('catalogRoot');
+  const term = state.search.trim();
+  let anyVisible = false;
+  let html = '';
+
+  CATALOG.forEach(cat => {
+    if(state.activeChip !== 'all' && state.activeChip !== cat.id) return;
+    const filteredItems = cat.items.filter(it => matches(it, term));
+    if(term && filteredItems.length === 0) return;
+    anyVisible = true;
+    const meta = CAT_META[cat.id] || {color:'#7a2048', icon:''};
+    const isOpen = term ? true : state.openCats.has(cat.id);
+    const selectedInCat = cat.items.reduce((n, it) => n + (cat.units.some((u, ui) => getQty(cat.id, it.code, ui) > 0) ? 1 : 0), 0);
+
+    html += `<div class="cat" id="cat-${cat.id}">
+      <div class="cat-head" data-toggle="${cat.id}" role="button" tabindex="0">
+        <div class="cat-head-left">
+          <div class="cat-badge" style="background:${meta.color}">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${meta.icon}"/></svg>
+          </div>
+          <div>
+            <div class="cat-title">${escapeHtml(cat.title)}</div>
+            <div class="cat-sub">${cat.items.length} referencias${cat.units.length > 1 ? ' · ' + cat.units.join(' / ') : ''}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          ${selectedInCat > 0 ? `<div class="cat-count">${selectedInCat} sel.</div>` : ''}
+          <svg class="chev ${isOpen ? 'open' : ''}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7a716b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
+      <div class="cat-body ${isOpen ? '' : 'collapsed'}">
+        ${filteredItems.map(it => {
+          const hasQty = cat.units.some((u, ui) => getQty(cat.id, it.code, ui) > 0);
+          return `<div class="prow ${hasQty ? 'has-qty' : ''}">
+            <div class="prow-info">
+              <span class="prow-code">${highlight(it.code, term)}</span>
+              <div class="prow-name">${highlight(it.name, term)}</div>
+            </div>
+            <div class="variants">
+              ${cat.units.map((u, ui) => {
+                const q = getQty(cat.id, it.code, ui);
+                return `<div class="variant">
+                  ${cat.units.length > 1 ? `<div class="vlabel">${escapeHtml(u)}</div>` : ''}
+                  <div class="stepper">
+                    <button type="button" data-act="dec" data-cat="${cat.id}" data-code="${it.code}" data-u="${ui}" aria-label="Disminuir">−</button>
+                    <input type="number" inputmode="numeric" pattern="[0-9]*" value="${q}" data-cat="${cat.id}" data-code="${it.code}" data-u="${ui}" data-role="qtyinput" aria-label="Cantidad">
+                    <button type="button" data-act="inc" data-cat="${cat.id}" data-code="${it.code}" data-u="${ui}" aria-label="Aumentar">+</button>
+                  </div>
+                </div>`;
+              }).join('')}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  });
+
+  root.innerHTML = html;
+  document.getElementById('emptyResults').style.display = anyVisible ? 'none' : 'block';
+
+  // Category toggles
+  root.querySelectorAll('[data-toggle]').forEach(el => {
+    const toggleHandler = (e) => {
+      e.preventDefault();
+      const id = el.dataset.toggle;
+      if(state.openCats.has(id)) state.openCats.delete(id); else state.openCats.add(id);
+      renderCatalog();
+    };
+    el.addEventListener('click', toggleHandler);
+    el.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter' || e.key === ' ') { toggleHandler(e); }
+    });
+  });
+
+  // Steppers Buttons
+  root.querySelectorAll('[data-act]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const { cat, code, u, act } = btn.dataset;
+      const cur = getQty(cat, code, u);
+      setQty(cat, code, u, act === 'inc' ? cur + 1 : cur - 1);
+      renderCatalog();
+      updateCartUI();
+    });
+  });
+
+  // Stepper Direct Inputs
+  root.querySelectorAll('[data-role="qtyinput"]').forEach(inp => {
+    inp.addEventListener('click', e => e.stopPropagation());
+    inp.addEventListener('change', () => {
+      const { cat, code, u } = inp.dataset;
+      setQty(cat, code, u, parseInt(inp.value, 10));
+      renderCatalog();
+      updateCartUI();
+    });
+    inp.addEventListener('blur', () => {
+      const { cat, code, u } = inp.dataset;
+      setQty(cat, code, u, parseInt(inp.value, 10));
+      renderCatalog();
+      updateCartUI();
+    });
+  });
+}
+
+/* ---------- Búsqueda ---------- */
+const searchInput = document.getElementById('searchInput');
+const clearSearch = document.getElementById('clearSearch');
+searchInput.addEventListener('input', () => {
+  state.search = searchInput.value;
+  clearSearch.style.display = state.search ? 'flex' : 'none';
+  renderCatalog();
+});
+clearSearch.addEventListener('click', (e) => {
+  e.preventDefault();
+  searchInput.value = '';
+  state.search = '';
+  clearSearch.style.display = 'none';
+  renderCatalog();
+  searchInput.focus();
+});
+
+/* ---------- Panel de Datos del Cliente ---------- */
+const clientPanel = document.getElementById('clientPanel');
+const clientToggle = document.getElementById('clientToggle');
+let clientOpen = false;
+clientToggle.addEventListener('click', (e) => {
+  e.preventDefault();
+  clientOpen = !clientOpen;
+  clientPanel.classList.toggle('open', clientOpen);
+  clientToggle.setAttribute('aria-expanded', clientOpen);
+  clientToggle.querySelector('.chev').classList.toggle('open', clientOpen);
+});
+['c_nombre','c_direccion','c_telefono','c_barrio','c_ciudad','c_nit','c_correo','c_fecha'].forEach(id => {
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('input', updateClientSummary);
+});
+function updateClientSummary(){
+  const nombre = (document.getElementById('c_nombre').value || '').trim();
+  const ciudad = (document.getElementById('c_ciudad').value || '').trim();
+  const l1 = document.getElementById('clientSummaryLine');
+  const l2 = document.getElementById('clientSummarySub');
+  if(nombre){
+    l1.textContent = nombre;
+    l2.textContent = ciudad ? ('Cliente · ' + ciudad) : 'Datos del cliente';
+  } else {
+    l1.textContent = 'Datos del cliente';
+    l2.textContent = 'Toca para diligenciar';
+  }
+}
+(function(){
+  const d = new Date();
+  const yr = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const da = String(d.getDate()).padStart(2, '0');
+  document.getElementById('c_fecha').value = `${yr}-${mo}-${da}`;
+})();
+
+/* ---------- Carrito y Totales ---------- */
+function collectSelection(){
+  const rows = [];
+  CATALOG.forEach(cat => {
+    cat.items.forEach(it => {
+      cat.units.forEach((u, ui) => {
+        const q = getQty(cat.id, it.code, ui);
+        if(q > 0){
+          rows.push({
+            catId: cat.id,
+            catTitle: cat.title,
+            code: it.code,
+            name: it.name,
+            unit: u,
+            multiUnit: cat.units.length > 1,
+            qty: q
+          });
+        }
+      });
+    });
+  });
+  return rows;
+}
+
+function updateCartUI(){
+  const rows = collectSelection();
+  const totalUnidades = rows.reduce((s, r) => s + r.qty, 0);
+  const refCount = rows.length;
+  document.getElementById('cartCount').textContent = totalUnidades;
+  document.getElementById('cartFabSub').textContent = refCount + (refCount === 1 ? ' referencia seleccionada' : ' referencias seleccionadas');
+  document.getElementById('cartFab').classList.toggle('show', refCount > 0);
+  renderSheetBody(rows);
+}
+
+function renderSheetBody(rows){
+  const body = document.getElementById('sheetBody');
+  if(rows.length === 0){
+    body.innerHTML = `<div class="sheet-empty">Aún no has agregado productos.<br>Busca en el catálogo y toca “+” para añadirlos.</div>`;
+    return;
+  }
+  const byCat = {};
+  rows.forEach(r => { (byCat[r.catId] = byCat[r.catId] || []).push(r); });
+
+  let html = '';
+  Object.keys(byCat).forEach(catId => {
+    const catRows = byCat[catId];
+    html += `<div class="sheet-section-title">${escapeHtml(catRows[0].catTitle)}</div>`;
+    catRows.forEach(r => {
+      const catObj = CATALOG.find(c => c.id === r.catId);
+      const uIdx = catObj ? catObj.units.indexOf(r.unit) : 0;
+      html += `<div class="cart-item">
+        <div class="cart-item-info">
+          <div class="cart-item-name">${escapeHtml(r.name)}</div>
+          <div class="cart-item-meta">Cód. ${escapeHtml(r.code)}${r.multiUnit ? ' · ' + escapeHtml(r.unit) : ''}</div>
+        </div>
+        <div class="cart-item-qty">×${r.qty}</div>
+        <button type="button" class="cart-item-del" data-del-cat="${r.catId}" data-del-code="${r.code}" data-del-unit="${uIdx}" aria-label="Eliminar item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
+        </button>
+      </div>`;
+    });
+  });
+
+  const totalUnidades = rows.reduce((s, r) => s + r.qty, 0);
+  html += `<div class="sheet-section-title">Totales del pedido</div>
+    <div class="totals-card">
+      <div class="totals-row"><span>Total unidades</span><strong>${totalUnidades}</strong></div>
+      <div class="totals-row"><span>Referencias distintas</span><strong>${rows.length}</strong></div>
+      <div class="totals-row">
+        <span>Valor del pedido ($)</span>
+        <input type="number" id="totalPedidoInput" placeholder="0" style="width:110px;text-align:right;border:1.3px solid var(--line);border-radius:8px;padding:6px 8px;font-weight:700;">
+      </div>
+      <div class="totals-row">
+        <span>IVA</span>
+        <div class="iva-input-wrap"><input type="number" id="ivaPctInput" value="19">%</div>
+      </div>
+      <div class="totals-row grand"><span>Total + IVA</span><strong id="grandTotalOut">$0</strong></div>
+    </div>
+    <div class="sheet-section-title">Observaciones</div>
+    <textarea id="observacionesInput" rows="3" placeholder="Notas para el pedido (colores agotados, entrega, etc.)" style="width:100%;border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13.5px;background:var(--paper-50);"></textarea>
+    <div style="height:6px;"></div>
+  `;
+
+  body.innerHTML = html;
+
+  document.getElementById('totalPedidoInput').value = state.totalPedido || '';
+  document.getElementById('ivaPctInput').value = state.ivaPct ?? 19;
+  document.getElementById('observacionesInput').value = state.observaciones || '';
+  recalcGrandTotal();
+
+  document.getElementById('totalPedidoInput').addEventListener('input', e => { state.totalPedido = e.target.value; recalcGrandTotal(); });
+  document.getElementById('ivaPctInput').addEventListener('input', e => { state.ivaPct = e.target.value; recalcGrandTotal(); });
+  document.getElementById('observacionesInput').addEventListener('input', e => { state.observaciones = e.target.value; });
+
+  body.querySelectorAll('[data-del-cat]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const { delCat, delCode, delUnit } = btn.dataset;
+      setQty(delCat, delCode, delUnit, 0);
+      renderCatalog();
+      updateCartUI();
+    });
+  });
+}
+
+function fmtMoney(n){
+  n = Math.round(n || 0);
+  return '$' + n.toLocaleString('es-CO');
+}
+
+function recalcGrandTotal(){
+  const base = parseFloat(state.totalPedido) || 0;
+  const iva = parseFloat(state.ivaPct) || 0;
+  const total = base + (base * iva / 100);
+  const out = document.getElementById('grandTotalOut');
+  if(out) out.textContent = fmtMoney(total);
+}
+
+/* ---------- Sheet Open / Close ---------- */
+const sheet = document.getElementById('cartSheet');
+const backdrop = document.getElementById('sheetBackdrop');
+function openSheet(){
+  updateCartUI();
+  sheet.classList.add('show');
+  backdrop.classList.add('show');
+}
+function closeSheet(){
+  sheet.classList.remove('show');
+  backdrop.classList.remove('show');
+}
+document.getElementById('openCartBtn').addEventListener('click', (e) => { e.preventDefault(); openSheet(); });
+document.getElementById('cartFab').addEventListener('click', (e) => {
+  if(e.target.id !== 'openCartBtn' && !e.target.closest('#openCartBtn')) openSheet();
+});
+document.getElementById('closeSheetBtn').addEventListener('click', (e) => { e.preventDefault(); closeSheet(); });
+backdrop.addEventListener('click', (e) => { e.preventDefault(); closeSheet(); });
+
+document.getElementById('clearCartBtn').addEventListener('click', () => {
+  if(confirm('¿Vaciar todo el pedido? Esta acción no se puede deshacer.')){
+    state.qty = {};
+    renderCatalog();
+    updateCartUI();
+    showToast('Pedido vaciado');
+  }
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if(confirm('¿Iniciar un nuevo pedido? Se borrarán los datos del cliente y las cantidades.')){
+    state.qty = {};
+    state.totalPedido = '';
+    state.ivaPct = 19;
+    state.observaciones = '';
+    ['c_nombre','c_direccion','c_telefono','c_barrio','c_ciudad','c_nit','c_correo'].forEach(id => {
+      const el = document.getElementById(id);
+      if(el) el.value = '';
+    });
+    updateClientSummary();
+    renderCatalog();
+    updateCartUI();
+    showToast('Nuevo pedido iniciado');
+  }
+});
+
+/* ---------- Toast Notification ---------- */
+let toastTimer;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+/* =========================================================
+   NUEVO MOTOR DE EXPORTACIÓN A PDF CON jsPDF + AUTO-TABLE
+   (Diseño a dos columnas exacto, 100% vectorial, sin html2canvas,
+   compatible y ultrarrápido en iOS Safari / iPad / Android / PC)
+   ========================================================= */
+document.getElementById('exportPdfBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('exportPdfBtn');
+  const originalText = btn.innerHTML;
+  btn.innerHTML = 'Generando PDF…';
+  btn.disabled = true;
+
+  const overlay = document.getElementById('pdfLoading');
+  overlay.classList.add('show');
+
+  try {
+    if(!window.jspdf || !window.jspdf.jsPDF){
+      throw new Error('No se encontró la librería jsPDF. Por favor verifica tu conexión a internet.');
+    }
+
+    const { jsPDF } = window.jspdf;
+    // Letter format in points: 612 pt x 792 pt (Portrait)
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'pt',
+      format: 'letter'
+    });
+
+    const g = id => (document.getElementById(id) ? document.getElementById(id).value.trim() : '');
+    const base = parseFloat(state.totalPedido) || 0;
+    const ivaPct = parseFloat(state.ivaPct) || 0;
+    const ivaVal = base * ivaPct / 100;
+    const grandTotal = base + ivaVal;
+    const fecha = g('c_fecha') || new Date().toISOString().slice(0, 10);
+    const [y, m, d] = fecha.split('-');
+    const fechaFmt = (d && m && y) ? `${d}/${m}/${y}` : fecha;
+
+    /* 1. CABECERA DEL DOCUMENTO */
+    // Logo circular Mc
+    const logoX = 40;
+    const logoY = 24;
+    const logoR = 14;
+    doc.setDrawColor(122, 32, 72); // --wine-700
+    doc.setLineWidth(1.4);
+    doc.circle(logoX, logoY, logoR);
+
+    doc.setFont('times', 'bold');
+    doc.setFontSize(14.5);
+    doc.setTextColor(122, 32, 72);
+    doc.text('Mc', logoX, logoY + 4.5, { align: 'center' });
+
+    // Título Principal Centrado
+    doc.setFont('times', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(20, 20, 20);
+    doc.text('Formato de Pedidos Mc.Airam', 306, logoY + 4.5, { align: 'center' });
+
+    // Fecha en la esquina superior derecha
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(30, 30, 30);
+    doc.text('Fecha: ', 504, logoY + 3.5);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text(fechaFmt, 536, logoY + 3.5);
+    doc.setDrawColor(30, 30, 30);
+    doc.setLineWidth(0.6);
+    doc.line(534, logoY + 5.5, 596, logoY + 5.5);
+
+    /* 2. TABLA DE DATOS DEL CLIENTE */
+    doc.autoTable({
+      startY: 44,
+      margin: { left: 16, right: 16 },
+      tableWidth: 580,
+      body: [
+        [
+          { content: 'Nombres y apellidos o razón social', styles: { fontStyle: 'bold', fillColor: [242, 242, 242] } },
+          { content: g('c_nombre') },
+          { content: 'Dirección de despacho', styles: { fontStyle: 'bold', fillColor: [242, 242, 242] } },
+          { content: g('c_direccion') }
+        ],
+        [
+          { content: 'Nº RUT / NIT #', styles: { fontStyle: 'bold', fillColor: [242, 242, 242] } },
+          { content: g('c_nit') },
+          { content: 'Teléfono', styles: { fontStyle: 'bold', fillColor: [242, 242, 242] } },
+          { content: g('c_telefono') }
+        ],
+        [
+          { content: 'Correo', styles: { fontStyle: 'bold', fillColor: [242, 242, 242] } },
+          { content: g('c_correo') },
+          { content: 'Barrio', styles: { fontStyle: 'bold', fillColor: [242, 242, 242] } },
+          { content: g('c_barrio') }
+        ],
+        [
+          { content: ' ', styles: { fillColor: [242, 242, 242] } },
+          { content: ' ' },
+          { content: 'Ciudad', styles: { fontStyle: 'bold', fillColor: [242, 242, 242] } },
+          { content: g('c_ciudad') }
+        ]
+      ],
+      theme: 'plain',
+      styles: {
+        font: 'helvetica',
+        fontSize: 6.8,
+        cellPadding: { top: 1.8, bottom: 1.8, left: 3.5, right: 3.5 },
+        lineColor: [30, 30, 30],
+        lineWidth: 0.5,
+        textColor: [20, 20, 20],
+        valign: 'middle'
+      },
+      columnStyles: {
+        0: { cellWidth: 125 },
+        1: { cellWidth: 165 },
+        2: { cellWidth: 105 },
+        3: { cellWidth: 185 }
+      },
+      pageBreak: 'avoid'
+    });
+
+    const tablesStartY = (doc.lastAutoTable ? doc.lastAutoTable.finalY : 100) + 4;
+
+    /* 3. CONSTRUCCIÓN DE LAS DOS COLUMNAS LADO A LADO */
+    const tintesCat = CATALOG.find(c => c.id === 'tintes');
+    const tintesLeftItems = tintesCat.items.slice(0, 61); // Primeros 61 items
+    const tintesRightItems = tintesCat.items.slice(61);   // 18 items restantes
+    const oxicream120Cat = CATALOG.find(c => c.id === 'oxicream120');
+    const oxicreamGdeCat = CATALOG.find(c => c.id === 'oxicreamgde');
+    const tratCat = CATALOG.find(c => c.id === 'tratamientos');
+    const polvosCat = CATALOG.find(c => c.id === 'polvos');
+    const shampooCat = CATALOG.find(c => c.id === 'shampoo');
+    const mascarillaCat = CATALOG.find(c => c.id === 'mascarilla');
+    const fantasiaCat = CATALOG.find(c => c.id === 'fantasia');
+    const saloonCat = CATALOG.find(c => c.id === 'saloon');
+
+    let permaSum = 0, touchSum = 0;
+    tintesCat.items.forEach(it => {
+      permaSum += getQty('tintes', it.code, 0);
+      touchSum += getQty('tintes', it.code, 1);
+    });
+
+    // ----- COLUMNA IZQUIERDA (Primeros 61 items de Tintes + Fila de TOTAL TINTES) -----
+    const leftHead = [
+      [
+        { content: 'CÓDIGO', styles: { halign: 'center' } },
+        { content: 'REFERENCIAS', styles: { halign: 'center' } },
+        { content: 'CANTIDAD', colSpan: 2, styles: { halign: 'center' } }
+      ],
+      [
+        { content: 'No', styles: { halign: 'center' } },
+        { content: 'NOMBRE DEL TINTE', styles: { halign: 'center' } },
+        { content: 'PERMA', styles: { halign: 'center' } },
+        { content: 'TOUCH', styles: { halign: 'center' } }
+      ]
+    ];
+
+    const leftBody = tintesLeftItems.map(it => {
+      const q0 = getQty('tintes', it.code, 0);
+      const q1 = getQty('tintes', it.code, 1);
+      return [
+        { content: it.code, styles: { textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center' } },
+        { content: it.name, styles: { halign: 'left' } },
+        { content: q0 > 0 ? String(q0) : '', styles: { halign: 'center', fontStyle: 'bold', fillColor: q0 > 0 ? [251, 246, 234] : undefined } },
+        { content: q1 > 0 ? String(q1) : '', styles: { halign: 'center', fontStyle: 'bold', fillColor: q1 > 0 ? [251, 246, 234] : undefined } }
+      ];
+    });
+
+    leftBody.push([
+      { content: 'TOTAL TINTES', colSpan: 2, styles: { fontStyle: 'bold', fillColor: [233, 226, 207], halign: 'left', fontSize: 5.8 } },
+      { content: String(permaSum), styles: { fontStyle: 'bold', fillColor: [233, 226, 207], halign: 'center', fontSize: 5.8 } },
+      { content: String(touchSum), styles: { fontStyle: 'bold', fillColor: [233, 226, 207], halign: 'center', fontSize: 5.8 } }
+    ]);
+
+    doc.autoTable({
+      startY: tablesStartY,
+      margin: { left: 16, right: 310 },
+      tableWidth: 286,
+      head: leftHead,
+      body: leftBody,
+      theme: 'plain',
+      styles: {
+        font: 'helvetica',
+        fontSize: 5.0,
+        cellPadding: { top: 0.65, bottom: 0.65, left: 1.5, right: 1.5 },
+        lineColor: [40, 40, 40],
+        lineWidth: 0.45,
+        textColor: [15, 15, 15],
+        overflow: 'ellipsize',
+        minCellHeight: 6.8
+      },
+      headStyles: {
+        fillColor: [240, 240, 240],
+        textColor: [0, 0, 0],
+        fontSize: 5.8,
+        fontStyle: 'bold',
+        lineColor: [40, 40, 40],
+        lineWidth: 0.6,
+        cellPadding: { top: 1.0, bottom: 1.0, left: 1.5, right: 1.5 }
+      },
+      columnStyles: {
+        0: { cellWidth: 40 },
+        1: { cellWidth: 156 },
+        2: { cellWidth: 45 },
+        3: { cellWidth: 45 }
+      },
+      pageBreak: 'avoid'
+    });
+
+    const leftFinalY = doc.lastAutoTable.finalY;
+
+    // ----- COLUMNA DERECHA: SECCIÓN PRINCIPAL (Tintes restantes, Oxicream, Tratamientos, Polvos, Shampoo, Mascarilla, Fantasía) -----
+    const rightHead = [
+      [
+        { content: 'CÓDIGO', styles: { halign: 'center' } },
+        { content: 'REFERENCIAS', styles: { halign: 'center' } },
+        { content: 'CANTIDAD', colSpan: 2, styles: { halign: 'center' } }
+      ],
+      [
+        { content: 'No', styles: { halign: 'center' } },
+        { content: 'NOMBRE DEL TINTE', styles: { halign: 'center' } },
+        { content: 'PERMA', styles: { halign: 'center' } },
+        { content: 'TOUCH', styles: { halign: 'center' } }
+      ]
+    ];
+
+    const rightBody = [];
+
+    // 1. Items restantes de tintes (18 items)
+    tintesRightItems.forEach(it => {
+      const q0 = getQty('tintes', it.code, 0);
+      const q1 = getQty('tintes', it.code, 1);
+      rightBody.push([
+        { content: it.code, styles: { textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center' } },
+        { content: it.name, styles: { halign: 'left' } },
+        { content: q0 > 0 ? String(q0) : '', styles: { halign: 'center', fontStyle: 'bold', fillColor: q0 > 0 ? [251, 246, 234] : undefined } },
+        { content: q1 > 0 ? String(q1) : '', styles: { halign: 'center', fontStyle: 'bold', fillColor: q1 > 0 ? [251, 246, 234] : undefined } }
+      ]);
+    });
+
+    // 2. Oxicream 120ml (4 items)
+    if(oxicream120Cat){
+      oxicream120Cat.items.forEach(it => {
+        const q = getQty(oxicream120Cat.id, it.code, 0);
+        rightBody.push([
+          { content: it.code, styles: { fontStyle: 'bold', halign: 'center' } },
+          { content: it.name, styles: { halign: 'left' } },
+          { content: q > 0 ? String(q) : '', colSpan: 2, styles: { halign: 'center', fontStyle: 'bold', fillColor: q > 0 ? [251, 246, 234] : undefined } }
+        ]);
+      });
+    }
+
+    // 3. Oxicream Activadores (Litro / Galón)
+    if(oxicreamGdeCat){
+      rightBody.push([
+        { content: 'OXICREAM ACTIVADORES', colSpan: 2, styles: { fontStyle: 'bold', fillColor: [240, 240, 240], textColor: [0, 0, 0], fontSize: 5.6, halign: 'center' } },
+        { content: 'LITRO', styles: { fontStyle: 'bold', fillColor: [240, 240, 240], textColor: [0, 0, 0], halign: 'center', fontSize: 5.2 } },
+        { content: 'GALON', styles: { fontStyle: 'bold', fillColor: [240, 240, 240], textColor: [0, 0, 0], halign: 'center', fontSize: 5.2 } }
+      ]);
+      oxicreamGdeCat.items.forEach(it => {
+        const q0 = getQty(oxicreamGdeCat.id, it.code, 0);
+        const q1 = getQty(oxicreamGdeCat.id, it.code, 1);
+        rightBody.push([
+          { content: it.code, styles: { fontStyle: 'bold', halign: 'center' } },
+          { content: it.name, styles: { halign: 'left' } },
+          { content: q0 > 0 ? String(q0) : '', styles: { halign: 'center', fontStyle: 'bold', fillColor: q0 > 0 ? [251, 246, 234] : undefined } },
+          { content: q1 > 0 ? String(q1) : '', styles: { halign: 'center', fontStyle: 'bold', fillColor: q1 > 0 ? [251, 246, 234] : undefined } }
+        ]);
+      });
+    }
+
+    // 4. Tratamientos Capilares
+    if(tratCat){
+      rightBody.push([
+        { content: 'TRATAMIENTOS CAPILARES', colSpan: 4, styles: { fontStyle: 'bold', fillColor: [240, 240, 240], textColor: [0, 0, 0], fontSize: 5.6, halign: 'center' } }
+      ]);
+      tratCat.items.forEach(it => {
+        const q = getQty(tratCat.id, it.code, 0);
+        rightBody.push([
+          { content: it.code, styles: { fontStyle: 'bold', halign: 'center' } },
+          { content: it.name, styles: { halign: 'left' } },
+          { content: q > 0 ? String(q) : '', colSpan: 2, styles: { halign: 'center', fontStyle: 'bold', fillColor: q > 0 ? [251, 246, 234] : undefined } }
+        ]);
+      });
+    }
+
+    // 5. Polvos Decolorantes
+    if(polvosCat){
+      rightBody.push([
+        { content: 'POLVOS DECOLORANTES', colSpan: 4, styles: { fontStyle: 'bold', fillColor: [240, 240, 240], textColor: [0, 0, 0], fontSize: 5.6, halign: 'center' } }
+      ]);
+      polvosCat.items.forEach(it => {
+        const q = getQty(polvosCat.id, it.code, 0);
+        rightBody.push([
+          { content: it.code, styles: { fontStyle: 'bold', halign: 'center' } },
+          { content: it.name, styles: { halign: 'left' } },
+          { content: q > 0 ? String(q) : '', colSpan: 2, styles: { halign: 'center', fontStyle: 'bold', fillColor: q > 0 ? [251, 246, 234] : undefined } }
+        ]);
+      });
+    }
+
+    // 6. Shampoo Color
+    if(shampooCat){
+      rightBody.push([
+        { content: 'SHAMPOO COLOR', colSpan: 4, styles: { fontStyle: 'bold', fillColor: [240, 240, 240], textColor: [0, 0, 0], fontSize: 5.6, halign: 'center' } }
+      ]);
+      shampooCat.items.forEach(it => {
+        const q = getQty(shampooCat.id, it.code, 0);
+        rightBody.push([
+          { content: it.code, styles: { fontStyle: 'bold', halign: 'center' } },
+          { content: it.name, styles: { halign: 'left' } },
+          { content: q > 0 ? String(q) : '', colSpan: 2, styles: { halign: 'center', fontStyle: 'bold', fillColor: q > 0 ? [251, 246, 234] : undefined } }
+        ]);
+      });
+    }
+
+    // 7. Mascarilla Color Tono Sobre Tono (con columnas ML y CJ X 12)
+    if(mascarillaCat){
+      rightBody.push([
+        { content: 'MASCARILLA COLOR TONO SOBRE TONO', colSpan: 2, styles: { fontStyle: 'bold', fillColor: [240, 240, 240], textColor: [0, 0, 0], fontSize: 5.6, halign: 'center' } },
+        { content: 'ML', styles: { fontStyle: 'bold', fillColor: [240, 240, 240], textColor: [0, 0, 0], halign: 'center', fontSize: 5.2 } },
+        { content: 'CJ X 12', styles: { fontStyle: 'bold', fillColor: [240, 240, 240], textColor: [0, 0, 0], halign: 'center', fontSize: 5.0 } }
+      ]);
+      mascarillaCat.items.forEach(it => {
+        const q0 = getQty(mascarillaCat.id, it.code, 0);
+        const q1 = getQty(mascarillaCat.id, it.code, 1);
+        rightBody.push([
+          { content: it.code, styles: { fontStyle: 'bold', halign: 'center' } },
+          { content: it.name, styles: { halign: 'left' } },
+          { content: q0 > 0 ? String(q0) : '', styles: { halign: 'center', fontStyle: 'bold', fillColor: q0 > 0 ? [251, 246, 234] : undefined } },
+          { content: q1 > 0 ? String(q1) : '', styles: { halign: 'center', fontStyle: 'bold', fillColor: q1 > 0 ? [251, 246, 234] : undefined } }
+        ]);
+      });
+    }
+
+    // 8. Fantasía Color Ecocolory (80 ML / 220 ML)
+    if(fantasiaCat){
+      rightBody.push([
+        { content: 'FANTASIA COLOR ECOCOLORY', colSpan: 2, styles: { fontStyle: 'bold', fillColor: [240, 240, 240], textColor: [0, 0, 0], fontSize: 5.6, halign: 'center' } },
+        { content: '80 ML', styles: { fontStyle: 'bold', fillColor: [240, 240, 240], textColor: [0, 0, 0], halign: 'center', fontSize: 5.2 } },
+        { content: '220 ML', styles: { fontStyle: 'bold', fillColor: [240, 240, 240], textColor: [0, 0, 0], halign: 'center', fontSize: 5.2 } }
+      ]);
+      fantasiaCat.items.forEach(it => {
+        const q0 = getQty(fantasiaCat.id, it.code, 0);
+        const q1 = getQty(fantasiaCat.id, it.code, 1);
+        rightBody.push([
+          { content: it.code, styles: { fontStyle: 'bold', halign: 'center' } },
+          { content: it.name, styles: { halign: 'left' } },
+          { content: q0 > 0 ? String(q0) : '', styles: { halign: 'center', fontStyle: 'bold', fillColor: q0 > 0 ? [251, 246, 234] : undefined } },
+          { content: q1 > 0 ? String(q1) : '', styles: { halign: 'center', fontStyle: 'bold', fillColor: q1 > 0 ? [251, 246, 234] : undefined } }
+        ]);
+      });
+    }
+
+    doc.autoTable({
+      startY: tablesStartY,
+      margin: { left: 310, right: 16 },
+      tableWidth: 286,
+      head: rightHead,
+      body: rightBody,
+      theme: 'plain',
+      styles: {
+        font: 'helvetica',
+        fontSize: 5.0,
+        cellPadding: { top: 0.62, bottom: 0.62, left: 1.5, right: 1.5 },
+        lineColor: [40, 40, 40],
+        lineWidth: 0.45,
+        textColor: [15, 15, 15],
+        overflow: 'ellipsize',
+        minCellHeight: 6.8
+      },
+      headStyles: {
+        fillColor: [240, 240, 240],
+        textColor: [0, 0, 0],
+        fontSize: 5.8,
+        fontStyle: 'bold',
+        lineColor: [40, 40, 40],
+        lineWidth: 0.6,
+        cellPadding: { top: 1.0, bottom: 1.0, left: 1.5, right: 1.5 }
+      },
+      columnStyles: {
+        0: { cellWidth: 40 },
+        1: { cellWidth: 156 },
+        2: { cellWidth: 45 },
+        3: { cellWidth: 45 }
+      },
+      pageBreak: 'avoid'
+    });
+
+    let rightFinalY = doc.lastAutoTable.finalY;
+
+    // 9. Línea Saloon Professional (Tabla de 5 columnas: REF, CANTIDADES, 1000ML, 2000ML, 4000ML)
+    if(saloonCat){
+      const saloonBody = saloonCat.items.map(it => {
+        const q0 = getQty(saloonCat.id, it.code, 0);
+        const q1 = getQty(saloonCat.id, it.code, 1);
+        const q2 = getQty(saloonCat.id, it.code, 2);
+        return [
+          { content: it.code, styles: { fontStyle: 'bold', halign: 'center' } },
+          { content: it.name, styles: { halign: 'left' } },
+          { content: q0 > 0 ? String(q0) : '', styles: { halign: 'center', fontStyle: 'bold', fillColor: q0 > 0 ? [251, 246, 234] : undefined } },
+          { content: q1 > 0 ? String(q1) : '', styles: { halign: 'center', fontStyle: 'bold', fillColor: q1 > 0 ? [251, 246, 234] : undefined } },
+          { content: q2 > 0 ? String(q2) : '', styles: { halign: 'center', fontStyle: 'bold', fillColor: q2 > 0 ? [251, 246, 234] : undefined } }
+        ];
+      });
+
+      doc.autoTable({
+        startY: rightFinalY,
+        margin: { left: 310, right: 16 },
+        tableWidth: 286,
+        head: [
+          [
+            { content: 'LINEA SALOON PROFESSIONAL', colSpan: 5, styles: { fontStyle: 'bold', fillColor: [240, 240, 240], textColor: [0, 0, 0], fontSize: 5.8, halign: 'center' } }
+          ],
+          [
+            { content: 'REF', styles: { halign: 'center' } },
+            { content: 'CANTIDADES', styles: { halign: 'center' } },
+            { content: '1000ML', styles: { halign: 'center' } },
+            { content: '2000ML', styles: { halign: 'center' } },
+            { content: '4000ML', styles: { halign: 'center' } }
+          ]
+        ],
+        body: saloonBody,
+        theme: 'plain',
+        styles: {
+          font: 'helvetica',
+          fontSize: 5.0,
+          cellPadding: { top: 0.62, bottom: 0.62, left: 1.5, right: 1.5 },
+          lineColor: [40, 40, 40],
+          lineWidth: 0.45,
+          textColor: [15, 15, 15],
+          overflow: 'ellipsize',
+          minCellHeight: 6.8
+        },
+        headStyles: {
+          fillColor: [240, 240, 240],
+          textColor: [0, 0, 0],
+          fontSize: 5.4,
+          fontStyle: 'bold',
+          lineColor: [40, 40, 40],
+          lineWidth: 0.6,
+          cellPadding: { top: 0.9, bottom: 0.9, left: 1.5, right: 1.5 }
+        },
+        columnStyles: {
+          0: { cellWidth: 38 },
+          1: { cellWidth: 158 },
+          2: { cellWidth: 30 },
+          3: { cellWidth: 30 },
+          4: { cellWidth: 30 }
+        },
+        pageBreak: 'avoid'
+      });
+
+      rightFinalY = doc.lastAutoTable.finalY;
+    }
+
+    /* 4. PIE DE PÁGINA INFERIOR IZQUIERDO: OBSERVACIONES Y TOTALES */
+    const obsTopY = leftFinalY + 5;
+    const obsBoxW = 286;
+    const obsBoxH = 34;
+
+    // Cuadro de Observaciones amplio y limpio
+    doc.setDrawColor(40, 40, 40);
+    doc.setLineWidth(0.6);
+    doc.rect(16, obsTopY, obsBoxW, obsBoxH);
+
+    // Encabezado del cuadro de Observaciones
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6.5);
+    doc.setTextColor(20, 20, 20);
+    doc.text('OBSERVACIONES:', 22, obsTopY + 8);
+
+    // Contenido de las observaciones escritas por el usuario
+    if(state.observaciones){
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(5.8);
+      doc.setTextColor(30, 30, 30);
+      const obsSplit = doc.splitTextToSize(state.observaciones, obsBoxW - 14);
+      doc.text(obsSplit.slice(0, 4), 22, obsTopY + 16);
+    }
+
+    // Fila de TOTAL PEDIDO y MÁS IVA debajo del cuadro de Observaciones
+    const totalsY = obsTopY + obsBoxH + 12;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(10, 10, 10);
+    doc.text('TOTAL PEDIDO:  ' + (base > 0 ? fmtMoney(base) : '__________________'), 16, totalsY);
+    doc.text('MÁS IVA :  ' + (ivaVal > 0 ? fmtMoney(grandTotal) : '__________________'), 166, totalsY);
+
+    // Línea divisoria decorativa bajo el formulario
+    doc.setDrawColor(180, 180, 180);
+    doc.setLineWidth(0.4);
+    doc.line(16, totalsY + 9, 596, totalsY + 9);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(5.4);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Documento oficial de pedido McAiram · Generado el ${fechaFmt}`, 306, totalsY + 16, { align: 'center' });
+
+    /* 5. GUARDADO Y DESCARGA EN DISPOSITIVO */
+    const nombreCliente = (g('c_nombre') || 'pedido').replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ]+/g, '_').slice(0, 35);
+    const filename = `McAiram_Pedido_${nombreCliente}_${fechaFmt.replace(/\//g, '-')}.pdf`;
+    
+    doc.save(filename);
+    showToast('PDF generado exitosamente ✓');
+
+  } catch(err) {
+    console.error('Error al generar PDF:', err);
+    alert('Ocurrió un error generando el PDF: ' + (err && err.message ? err.message : 'intenta nuevamente.'));
+  } finally {
+    overlay.classList.remove('show');
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+  }
+});
+
+/* ---------- Inicialización ---------- */
+renderChips();
+renderCatalog();
+updateCartUI();
+</script>
+
+</body>
+</html>

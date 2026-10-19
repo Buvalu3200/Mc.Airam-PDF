@@ -1,0 +1,6 @@
+{
+  "name": "McAiram Pedidos",
+  "description": "Aplicación de toma de pedidos para productos de belleza McAiram con exportación directa a PDF de 2 columnas optimizada para iOS.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
